@@ -16,6 +16,7 @@ from types import TracebackType
 from typing import Final
 
 import httpx
+from pydantic import ValidationError
 
 from opensincera._models import Publisher
 from opensincera.errors import (
@@ -84,7 +85,13 @@ class Client:
 
     def _fetch_publisher(self, params: dict[str, str | int]) -> Publisher:
         response = self._request_with_retry("/publishers", params)
-        return Publisher.model_validate(response.json())
+        try:
+            return Publisher.model_validate(response.json())
+        except ValidationError as exc:
+            raise OpenSinceraError(
+                f"Response did not match the expected Publisher schema: {exc}",
+                status_code=response.status_code,
+            ) from exc
 
     def _request_with_retry(
         self,

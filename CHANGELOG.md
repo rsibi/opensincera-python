@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- `Publisher` no longer raises `ValidationError` when the API returns `null` for fields like `categories`, `avg_ad_refresh`, or any refresh-rate inside `device_level_metrics` (real responses do this for many publishers — the docs' example happened to be fully populated). Only `publisher_id`, `name`, and `domain` are now strictly required; everything else defaults to `None`.
+- `Client` now wraps `pydantic.ValidationError` as `OpenSinceraError` so callers don't have to catch a non-library exception type for schema-drift failures.
+
 ### Added
 - `opensincera.__version__` exposed via `importlib.metadata`.
 - Exception hierarchy under `opensincera.errors` (also re-exported at the package top level): `OpenSinceraError` (base), `AuthError` (401), `NotFoundError` (404), `RateLimitError` (429, with `retry_after`), `ServerError` (5xx), `TimeoutError` (wraps `httpx.TimeoutException`).

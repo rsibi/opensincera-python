@@ -140,3 +140,76 @@ class TestDeviceMetrics:
         dm = DeviceMetrics.model_validate(SAMPLE_PUBLISHER["device_level_metrics"]["mobile"])
         assert dm.average_refresh_rate == 53.704
         assert dm.percentage_of_ad_slots_with_refresh == 100.0
+
+    def test_accepts_all_fields_null(self) -> None:
+        # Real responses have null refresh-rate fields for some publishers.
+        dm = DeviceMetrics.model_validate(
+            {
+                "average_refresh_rate": None,
+                "max_refresh_rate": None,
+                "min_refresh_rate": None,
+                "avg_ad_units_in_view": 1.0,
+                "avg_ads_to_content_ratio": 0.1,
+                "max_ad_units_in_view": 1.0,
+                "max_ads_to_content_ratio": 1.0,
+                "min_ads_to_content_ratio": 0.0,
+                "percentage_of_ad_slots_with_refresh": 0.0,
+            }
+        )
+        assert dm.average_refresh_rate is None
+        assert dm.avg_ad_units_in_view == 1.0
+
+
+class TestPublisherSparseResponse:
+    """Real-world responses can omit or null-out most non-identity fields."""
+
+    def test_minimum_payload_validates(self) -> None:
+        pub = Publisher.model_validate(
+            {"publisher_id": 99, "name": "Tiny Pub", "domain": "tiny.example"}
+        )
+        assert pub.publisher_id == 99
+        assert pub.categories is None
+        assert pub.avg_ad_refresh is None
+        assert pub.device_level_metrics is None
+
+    def test_nytimes_like_payload_with_null_refresh_rates(self) -> None:
+        # Mirrors the nytimes.com response shape that broke the original
+        # too-strict schema: several refresh-rate fields are null and
+        # `categories` / `avg_ad_refresh` are absent or null.
+        payload = {
+            "publisher_id": 75,
+            "name": "The New York Times",
+            "domain": "nytimes.com",
+            "categories": None,
+            "avg_ad_refresh": None,
+            "device_level_metrics": {
+                "mobile": {
+                    "average_refresh_rate": None,
+                    "max_refresh_rate": None,
+                    "min_refresh_rate": None,
+                    "avg_ad_units_in_view": 1.5,
+                    "avg_ads_to_content_ratio": 0.18,
+                    "max_ad_units_in_view": 3.0,
+                    "max_ads_to_content_ratio": 0.5,
+                    "min_ads_to_content_ratio": 0.0,
+                    "percentage_of_ad_slots_with_refresh": 0.0,
+                },
+                "desktop": {
+                    "average_refresh_rate": None,
+                    "max_refresh_rate": None,
+                    "min_refresh_rate": None,
+                    "avg_ad_units_in_view": 2.0,
+                    "avg_ads_to_content_ratio": 0.2,
+                    "max_ad_units_in_view": 5.0,
+                    "max_ads_to_content_ratio": 0.6,
+                    "min_ads_to_content_ratio": 0.0,
+                    "percentage_of_ad_slots_with_refresh": 0.0,
+                },
+            },
+        }
+        pub = Publisher.model_validate(payload)
+        assert pub.name == "The New York Times"
+        assert pub.avg_ad_refresh is None
+        assert pub.categories is None
+        assert pub.device_level_metrics is not None
+        assert pub.device_level_metrics["mobile"].average_refresh_rate is None

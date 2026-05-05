@@ -136,6 +136,21 @@ def test_retry_after_value_is_passed_to_sleep(
 
 
 @respx.mock
+def test_validation_error_is_wrapped_as_opensincera_error(client: Client) -> None:
+    """A response missing required identity fields should raise the
+    library's own error, not a raw pydantic.ValidationError."""
+    from opensincera.errors import OpenSinceraError
+
+    respx.get(f"{_API_BASE}/publishers").mock(
+        # missing publisher_id, name, domain — all three required.
+        return_value=httpx.Response(200, json={"unexpected": "shape"}),
+    )
+    with pytest.raises(OpenSinceraError) as exc_info:
+        client.get_publisher_by_domain("any.com")
+    assert "Publisher schema" in str(exc_info.value)
+
+
+@respx.mock
 def test_429_without_retry_after_uses_exponential_backoff(
     client: Client,
     monkeypatch: pytest.MonkeyPatch,
