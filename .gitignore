@@ -14,3 +14,7 @@ wheels/
 
 # Local-only planning notes
 PLAN.md
+
+# direnv / local environment — holds OPENSINCERA_API_KEY; never commit
+.envrc
+.env
