@@ -1,5 +1,6 @@
 from importlib.metadata import version as _version
 
+from opensincera._models import DeviceMetrics, Publisher
 from opensincera.errors import (
     AuthError,
     NotFoundError,
@@ -10,8 +11,10 @@ from opensincera.errors import (
 
 __all__ = [
     "AuthError",
+    "DeviceMetrics",
     "NotFoundError",
     "OpenSinceraError",
+    "Publisher",
     "RateLimitError",
     "ServerError",
     "__version__",
