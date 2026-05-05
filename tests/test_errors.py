@@ -6,6 +6,7 @@ from opensincera.errors import (
     OpenSinceraError,
     RateLimitError,
     ServerError,
+    TimeoutError,
 )
 
 
@@ -28,7 +29,7 @@ class TestOpenSinceraError:
 
 @pytest.mark.parametrize(
     "subclass",
-    [AuthError, NotFoundError, RateLimitError, ServerError],
+    [AuthError, NotFoundError, RateLimitError, ServerError, TimeoutError],
 )
 def test_specific_errors_inherit_from_base(
     subclass: type[OpenSinceraError],

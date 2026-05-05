@@ -45,3 +45,13 @@ class RateLimitError(OpenSinceraError):
 
 class ServerError(OpenSinceraError):
     """Server-side error (any HTTP 5xx)."""
+
+
+class TimeoutError(OpenSinceraError):
+    """Request to OpenSincera timed out before a response was received.
+
+    Wraps `httpx.TimeoutException` so callers can catch every library failure
+    via `OpenSinceraError` without importing httpx. Intentionally shadows
+    Python's builtin `TimeoutError`; access via `opensincera.TimeoutError` or
+    `opensincera.errors.TimeoutError` to disambiguate.
+    """
