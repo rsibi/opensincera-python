@@ -1,19 +1,6 @@
-"""Entry point for `python -m opensincera`.
+"""Entry point for `python -m opensincera` — dispatches to the Typer CLI."""
 
-The Typer CLI lands at M2; until then this exits with a hint.
-"""
-
-import sys
-
-
-def main() -> None:
-    print(
-        "opensincera CLI is not yet implemented in this development build.\n"
-        "See the project README for status.",
-        file=sys.stderr,
-    )
-    sys.exit(1)
-
+from opensincera._cli import main
 
 if __name__ == "__main__":
     main()
