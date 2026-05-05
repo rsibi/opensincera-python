@@ -5,18 +5,21 @@ Exposes a single `get` verb with two ways to specify the publisher
 wired up as the `opensincera` console script via `[project.scripts]` in
 pyproject.toml.
 
-Output is JSON for now; richer formatters land in a follow-up commit.
+Output format is selectable via `--format` (json / csv / table) and
+defaults to TABLE when stdout is a TTY, JSON otherwise.
 """
 
 from __future__ import annotations
 
 import os
+import sys
 from typing import Annotated
 
 import typer
 
 from opensincera import __version__
 from opensincera._client import Client
+from opensincera._formatters import OutputFormat, auto_format, render_publisher
 from opensincera.errors import OpenSinceraError
 
 _API_KEY_ENV_VAR = "OPENSINCERA_API_KEY"
@@ -63,6 +66,13 @@ def get(
             help="Publisher ID to look up. Mutually exclusive with DOMAIN.",
         ),
     ] = None,
+    fmt: Annotated[
+        OutputFormat | None,
+        typer.Option(
+            "--format",
+            help="Output format. Defaults to TABLE on a TTY, JSON when piped.",
+        ),
+    ] = None,
 ) -> None:
     """Fetch publisher metadata by domain or by ID."""
     if (domain is None) == (publisher_id is None):
@@ -87,7 +97,8 @@ def get(
         typer.echo(f"error: {exc}", err=True)
         raise typer.Exit(code=1) from exc
 
-    typer.echo(pub.model_dump_json(indent=2))
+    resolved = fmt or auto_format(stdout_is_tty=sys.stdout.isatty())
+    render_publisher(pub, resolved, out=sys.stdout)
 
 
 def main() -> None:
