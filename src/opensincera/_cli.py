@@ -13,14 +13,23 @@ from __future__ import annotations
 
 import os
 import sys
+from enum import StrEnum
 from typing import Annotated
 
 import typer
 
 from opensincera import __version__
 from opensincera._client import Client
-from opensincera._formatters import OutputFormat, auto_format, render_publisher
+from opensincera._formatters import OutputFormat, auto_format, prepare_record, render_record
 from opensincera.errors import OpenSinceraError
+
+
+class Device(StrEnum):
+    """Device-metrics block selectable via the CLI's ``--device`` flag."""
+
+    MOBILE = "mobile"
+    DESKTOP = "desktop"
+
 
 _API_KEY_ENV_VAR = "OPENSINCERA_API_KEY"
 
@@ -73,12 +82,40 @@ def get(
             help="Output format. Defaults to TABLE on a TTY, JSON when piped.",
         ),
     ] = None,
+    api_key_opt: Annotated[
+        str | None,
+        typer.Option(
+            "--api-key",
+            help=f"API token. Overrides ${_API_KEY_ENV_VAR}.",
+        ),
+    ] = None,
+    timeout: Annotated[
+        float | None,
+        typer.Option(
+            "--timeout",
+            help="HTTP request timeout in seconds.",
+        ),
+    ] = None,
+    fields: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--field",
+            help="Project a single field; repeat to project multiple.",
+        ),
+    ] = None,
+    device: Annotated[
+        Device | None,
+        typer.Option(
+            "--device",
+            help="Drill into the named device-metrics block (mobile or desktop).",
+        ),
+    ] = None,
 ) -> None:
     """Fetch publisher metadata by domain or by ID."""
     if (domain is None) == (publisher_id is None):
         raise typer.BadParameter("provide exactly one of DOMAIN or --id")
 
-    api_key = os.environ.get(_API_KEY_ENV_VAR)
+    api_key = api_key_opt or os.environ.get(_API_KEY_ENV_VAR)
     if not api_key:
         typer.echo(
             f"error: {_API_KEY_ENV_VAR} environment variable is required",
@@ -86,8 +123,12 @@ def get(
         )
         raise typer.Exit(code=1)
 
+    client_kwargs: dict[str, object] = {"api_key": api_key}
+    if timeout is not None:
+        client_kwargs["timeout"] = timeout
+
     try:
-        with Client(api_key=api_key) as client:
+        with Client(**client_kwargs) as client:  # type: ignore[arg-type]
             pub = (
                 client.get_publisher_by_id(publisher_id)
                 if publisher_id is not None
@@ -98,7 +139,12 @@ def get(
         raise typer.Exit(code=1) from exc
 
     resolved = fmt or auto_format(stdout_is_tty=sys.stdout.isatty())
-    render_publisher(pub, resolved, out=sys.stdout)
+    record = prepare_record(
+        pub,
+        device=device.value if device is not None else None,
+        fields=tuple(fields or ()),
+    )
+    render_record(record, resolved, out=sys.stdout)
 
 
 def main() -> None:
